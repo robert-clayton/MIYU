@@ -6,7 +6,7 @@ A tool for scraping data from popular social media websites.
 
 # Requirements
 
-- Python 3.
+- Python 3.6
 
 # Installation
 
