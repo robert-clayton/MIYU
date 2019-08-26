@@ -3,13 +3,12 @@ import requests
 from PySide2.QtCore import Qt, QItemSelectionModel
 from PySide2.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QListView, QApplication
 from PySide2.QtGui import QPixmap, QStandardItemModel, QStandardItem
-from MIYU.Yankers import randomImage, randomImages
+from MIYU.Yankers import randomImgurResponse, randomImgurResponses
 
 class Image:
     url = Qt.DisplayRole
     image = Qt.UserRole+1
-    scaled = Qt.UserRole+2
-    data = Qt.UserRole+3
+    data = Qt.UserRole+2
 
 class MainWindow(QFrame):
     def __init__(self):
@@ -28,17 +27,17 @@ class MainWindow(QFrame):
         self._innerLayout.addWidget(self._viewer, alignment=Qt.AlignCenter)
         self._linkHistoryView.selectionModel().selectionChanged.connect(self._updateViewer)
 
-        self._newImage(randomImage())
+        self._newImage(randomImgurResponse())
 
     def _updateViewer(self, selected, deselected):
         # Updates viewer
-        self._viewer.setPixmap(selected.indexes()[0].data(role=Image.scaled))
+        index = selected.indexes()[0]
+        self._viewer.setPixmap(index.data(role=Image.image))
 
-    def _saveImage(self, givenImage=None):
-        # Saves the given image if any, else uses the image stored in the currently selected index
-        if givenImage:
-            name, data = givenImage
-            name = name.rsplit('/', 1)[-1]
+    def _saveImage(self, response=None):
+        # Saves the given response if any, else uses the image stored in the currently selected index
+        if response:
+            name, data = response.url.rsplit('/', 1)[-1], response.content
         else:
             item = self._linkHistoryView.selectionModel().selectedIndexes()[0]
             name = item.data(role=Image.url).rsplit('/', 1)[-1]
@@ -50,11 +49,10 @@ class MainWindow(QFrame):
         with open(saveDirectory, 'wb') as f:
             f.write(data)
 
-    def _makeItemFromUrl(self, url, maxWidth=700, maxHeight=700):
+    def _makeItem(self, response, maxWidth=700, maxHeight=700):
         # Creates an image item from the given url
-        data = requests.get(url).content
         pixmap = QPixmap()
-        pixmap.loadFromData(data)
+        pixmap.loadFromData(response.content)
 
         width, height = pixmap.width(), pixmap.height()
         if width > height and width > maxWidth:
@@ -71,16 +69,15 @@ class MainWindow(QFrame):
         
         # Make item
         item = QStandardItem()
-        item.setData(url, role=Image.url)
-        item.setData(data, role=Image.data)
-        item.setData(pixmap, role=Image.image)
-        item.setData(scaled, role=Image.scaled)
-
+        item.setData(response.url, role=Image.url)
+        item.setData(response.content, role=Image.data)
+        item.setData(scaled, role=Image.image)
+        
         return item
 
-    def _newImage(self, url):
+    def _newImage(self, response):
         # Creates a new image item, adds it to the model, then updates the view
-        item = self._makeItemFromUrl(url)
+        item = self._makeItem(response)
         self._linkHistoryModel.appendRow(item)
         self._linkHistoryView.selectionModel().select(self._linkHistoryModel.indexFromItem(item), QItemSelectionModel.ClearAndSelect)
 
@@ -88,13 +85,13 @@ class MainWindow(QFrame):
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
-            self._newImage(randomImage())
+            self._newImage(randomImgurResponse())
         elif event.button() == Qt.RightButton:
             self._saveImage()
 
     def keyReleaseEvent(self, event):
         if event.key() == Qt.Key_R:
-            for url in randomImages(10000):
-                newImageItem = self._newImage(url)
-                QApplication.processEvents()
-                self._saveImage((url, newImageItem.data(role=Image.data)))
+            for response in randomImgurResponses(10000):
+                # newImageItem = self._newImage(response)
+                # QApplication.processEvents()
+                self._saveImage(response)
