@@ -1,4 +1,7 @@
-from MIYU.miyu import main()
+from PySide2.QtWidgets import QApplication
+from MIYU.MainWindow import MainWindow
 
-if __name__ == '__main__':
-    main()
+app = QApplication()
+window = MainWindow()
+window.show()
+app.exec_()
