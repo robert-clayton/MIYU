@@ -8,6 +8,9 @@ A tool for scraping data from popular social media websites.
 
 - Python 3.6
 
-# Installation
+# How to Use
 
-- In a terminal, run `pip install git+https://github.com/robert-clayton/MIYU`
+- Open/cd terminal into repo directory
+- Run as module, e.g. `python -m MIYU`
+- Left click image to get new random image
+- Right click to save image
