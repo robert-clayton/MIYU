@@ -14,3 +14,4 @@ A tool for scraping data from popular social media websites. Currently only grab
 - Run as module, e.g. `python -m MIYU`
 - Left click image to get new random image
 - Right click to save image
+- R key to get/save 10,000 random images
