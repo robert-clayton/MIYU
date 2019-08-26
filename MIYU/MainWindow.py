@@ -1,9 +1,9 @@
 import os
 import requests
 from PySide2.QtCore import Qt, QItemSelectionModel
-from PySide2.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QListView
+from PySide2.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QListView, QApplication
 from PySide2.QtGui import QPixmap, QStandardItemModel, QStandardItem
-from MIYU.Yankers import randomImage
+from MIYU.Yankers import randomImage, randomImages
 
 class Image:
     url = Qt.DisplayRole
@@ -28,25 +28,30 @@ class MainWindow(QFrame):
         self._innerLayout.addWidget(self._viewer, alignment=Qt.AlignCenter)
         self._linkHistoryView.selectionModel().selectionChanged.connect(self._updateViewer)
 
-        self._newImage()
+        self._newImage(randomImage())
 
     def _updateViewer(self, selected, deselected):
         # Updates viewer
         self._viewer.setPixmap(selected.indexes()[0].data(role=Image.scaled))
 
-    def _saveImage(self):
-        # Saves the image stored in the currently selected index
-        item = self._linkHistoryView.selectionModel().selectedIndexes()[0]
+    def _saveImage(self, givenImage=None):
+        # Saves the given image if any, else uses the image stored in the currently selected index
+        if givenImage:
+            name, data = givenImage
+            name = name.rsplit('/', 1)[-1]
+        else:
+            item = self._linkHistoryView.selectionModel().selectedIndexes()[0]
+            name = item.data(role=Image.url).rsplit('/', 1)[-1]
+            data = item.data(role=Image.data)
         saveDirectory = './images'
         if not os.path.exists(saveDirectory):
             os.makedirs(saveDirectory)
-        saveDirectory += '/' + item.data(role=Image.url).rsplit('/', 1)[-1]
+        saveDirectory += '/' + name
         with open(saveDirectory, 'wb') as f:
-            f.write(item.data(role=Image.data))
+            f.write(data)
 
-    def _newImage(self, maxWidth=700, maxHeight=700):
-        # Creates a new image item, adds it to the model, then updates the view
-        url = randomImage()
+    def _makeItemFromUrl(self, url, maxWidth=700, maxHeight=700):
+        # Creates an image item from the given url
         data = requests.get(url).content
         pixmap = QPixmap()
         pixmap.loadFromData(data)
@@ -71,12 +76,25 @@ class MainWindow(QFrame):
         item.setData(pixmap, role=Image.image)
         item.setData(scaled, role=Image.scaled)
 
-        # Add to model and select in the selection model
+        return item
+
+    def _newImage(self, url):
+        # Creates a new image item, adds it to the model, then updates the view
+        item = self._makeItemFromUrl(url)
         self._linkHistoryModel.appendRow(item)
         self._linkHistoryView.selectionModel().select(self._linkHistoryModel.indexFromItem(item), QItemSelectionModel.ClearAndSelect)
 
+        return item
+
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
-            self._newImage()
+            self._newImage(randomImage())
         elif event.button() == Qt.RightButton:
             self._saveImage()
+
+    def keyReleaseEvent(self, event):
+        if event.key() == Qt.Key_R:
+            for url in randomImages(10000):
+                newImageItem = self._newImage(url)
+                QApplication.processEvents()
+                self._saveImage((url, newImageItem.data(role=Image.data)))
