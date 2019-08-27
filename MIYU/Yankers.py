@@ -1,7 +1,9 @@
-from urllib.request import urlopen
 import requests
 import random
 import string
+import time
+import os
+import multiprocessing
 
 def _getResponse():
     # Gets a valid response
@@ -31,3 +33,21 @@ def randomImgurResponses(amount):
 def randomImgurResponse():
     """Returns a single random image link."""
     return _getResponse()
+
+def _downloadIndefinitely(_):
+    while True:
+        try:
+            response = randomImgurResponse()
+            saveDirectory = './images'
+            if not os.path.exists(saveDirectory):
+                os.makedirs(saveDirectory)
+            saveDirectory += '/' + response.url.rsplit('/', 1)[-1]
+            with open(saveDirectory, 'wb') as f:
+                f.write(response.content)
+        except:
+            time.sleep(1)
+
+if __name__ == '__main__':
+    pool = multiprocessing.Pool(24)
+    pool.map(_downloadIndefinitely, [() for _ in range(24)])
+    pool.join()
