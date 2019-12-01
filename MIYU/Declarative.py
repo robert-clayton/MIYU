@@ -31,8 +31,8 @@ class Tweet(Base):
     id = db.Column(db.Integer, primary_key=True, autoincrement=False)
     created_at = db.Column(db.String(250))
     content = db.Column(db.String(280), nullable=False)
-    longitude = db.Column(db.Float)
-    latitude = db.Column(db.Float)
+    # longitude = db.Column(db.Float)
+    # latitude = db.Column(db.Float)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     reply_to_id = db.Column(db.Integer)
     reply_to_user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
@@ -42,17 +42,17 @@ class Tweet(Base):
 
     @staticmethod
     def new(data):
-        if data['coordinates']:
-            longitude = data['coordinates']['coordinates'][0]
-            latitude = data['coordinates']['coordinates'][1]
-        else:
-            longitude, latitude = None, None
+        # if data['coordinates']:
+        #     longitude = data['coordinates']['coordinates'][0]
+        #     latitude = data['coordinates']['coordinates'][1]
+        # else:
+        #     longitude, latitude = None, None
         return Tweet(
             id=data['id'],
             created_at=data['created_at'],
             content=data['text'],
-            longitude=longitude,
-            latitude=latitude,
+            # longitude=longitude,
+            # latitude=latitude,
             user_id=data['user']['id'],
             reply_to_id=data['in_reply_to_status_id'],
             reply_to_user_id=data['in_reply_to_user_id'],

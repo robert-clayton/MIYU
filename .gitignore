@@ -1,5 +1,5 @@
-/images/*
-/MIYU/Credentials.py
+images/*
+MIYU/Credentials.py
 *.db
 
 # Byte-compiled / optimized / DLL files
