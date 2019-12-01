@@ -34,11 +34,12 @@ def randomImgurResponse():
     """Returns a single random image link."""
     return _getResponse()
 
-def _downloadIndefinitely(_):
+def _downloadIndefinitely():
     while True:
         try:
             response = randomImgurResponse()
-            saveDirectory = './images'
+            # saveDirectory = './images'
+            saveDirectory = 'Z:/Images/random'
             if not os.path.exists(saveDirectory):
                 os.makedirs(saveDirectory)
             saveDirectory += '/' + response.url.rsplit('/', 1)[-1]
@@ -48,6 +49,6 @@ def _downloadIndefinitely(_):
             time.sleep(1)
 
 if __name__ == '__main__':
-    pool = multiprocessing.Pool(24)
+    pool = multiprocessing.Pool()
     pool.map(_downloadIndefinitely, [() for _ in range(24)])
     pool.join()
