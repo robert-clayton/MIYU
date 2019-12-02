@@ -59,5 +59,6 @@ class Tweet(Base):
             retweet_count=data['retweet_count'],
         )
 
-engine = db.create_engine('sqlite:///data.db')
-Base.metadata.create_all(engine)
+Engine = db.create_engine('sqlite:///data.db')
+Base.metadata.bind = Engine
+Base.metadata.create_all(Engine)

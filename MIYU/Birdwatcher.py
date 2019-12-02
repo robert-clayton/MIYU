@@ -1,16 +1,19 @@
-from Declarative import Base, User, Tweet
+from Declarative import Base, User, Tweet, Engine
 from Credentials import TWITTER
 import sqlalchemy as db
 from sqlalchemy.orm import sessionmaker
 from twython import TwythonStreamer
+import time
 
-engine = db.create_engine('sqlite:///data.db')
-Base.metadata.bind = engine
-
-DBSession = sessionmaker(bind=engine)
+DBSession = sessionmaker(bind=Engine)
 session = DBSession()
 
 class Birdwatcher(TwythonStreamer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._total = 0
+        self._startTime = time.time()
+
     def on_success(self, data):
         if not data['lang'] == 'en':
             return 
