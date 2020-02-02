@@ -1,48 +1,57 @@
 import os
 import requests
-from PySide2.QtCore import Qt, QItemSelectionModel, QByteArray, QBuffer, QIODevice
-from PySide2.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QListView, QApplication
-from PySide2.QtGui import QPixmap, QStandardItemModel, QStandardItem, QMovie
-from MIYU.Yankers import randomImgurResponse, randomImgurResponses
-
-class Image:
-    url = Qt.DisplayRole
-    image = Qt.UserRole+1
-    response = Qt.UserRole+2
+from PySide2.QtCore import Qt, QItemSelectionModel, QByteArray, QBuffer, QIODevice, QTimer
+from PySide2.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QListView, QApplication, QPushButton
+from PySide2.QtGui import QPixmap, QStandardItem, QMovie
+from miyu.Backend.Models import ImageModel, ImageElement
+from ..Backend.AsyncRequestManager import AsyncRequestManager
 
 class MainWindow(QFrame):
     def __init__(self):
         super().__init__()
-        self._linkHistoryModel = QStandardItemModel()
+        self._linkHistoryModel = ImageModel()
         self._linkHistoryView = QListView()
+        self._autoTimer = QTimer()
         self._viewer = QLabel()
+        self._play = QPushButton('START')
+        self._stop = QPushButton('STOP')
 
         self._linkHistoryView.setFixedWidth(200)
         self._linkHistoryView.setModel(self._linkHistoryModel)
 
+        self._autoTimer.setInterval(100)
+        self._autoTimer.timeout.connect(lambda: AsyncRequestManager.downloadRequest(random=True))
+
         self.setLayout(QHBoxLayout())
         self._innerLayout = QVBoxLayout()
+        self._buttonLayout = QHBoxLayout()
         self.layout().addWidget(self._linkHistoryView)
         self.layout().addLayout(self._innerLayout)
         self._innerLayout.addWidget(self._viewer, alignment=Qt.AlignCenter)
+        self._innerLayout.addLayout(self._buttonLayout, alignment=Qt.AlignBottom)
+        self._buttonLayout.addWidget(self._play)
+        self._buttonLayout.addWidget(self._stop)
         self._linkHistoryView.selectionModel().selectionChanged.connect(self._updateViewer)
 
-        self._newImage(randomImgurResponse())
+        AsyncRequestManager.responseReceived.connect(self._newImage)
+        AsyncRequestManager.downloadRequest(random=True)
+        self._play.clicked.connect(self._autoTimer.start)
+        self._stop.clicked.connect(self._autoTimer.stop)
 
     def _updateViewer(self, selected, deselected):
         # Updates viewer
         index = selected.indexes()[0]
-        response = index.data(role=Image.response)
-        if not index.data(role=Image.image):
+        response = index.data(role=ImageElement.response)
+        if not index.data(role=ImageElement.image):
             pixmap = self._makeImage(response)
-            self._linkHistoryModel.setData(index, pixmap, role=Image.image)
+            self._linkHistoryModel.setData(index, pixmap, role=ImageElement.image)
         
         # if response.headers['Content-Type'] == 'image/gif': #TODO: Find out why QMovie crashes with start()
-        #     movie = index.data(role=Image.image)
+        #     movie = index.data(role=ImageElement.image)
         #     self._viewer.setMovie(movie)
         #     movie.start()
         # else:
-        self._viewer.setPixmap(index.data(role=Image.image))
+        self._viewer.setPixmap(index.data(role=ImageElement.image))
 
     def _saveImage(self, response=None):
         # Saves the given response if any, else uses the image stored in the currently selected index
@@ -50,8 +59,8 @@ class MainWindow(QFrame):
             name, data = response.url.rsplit('/', 1)[-1], response.content
         else:
             item = self._linkHistoryView.selectionModel().selectedIndexes()[0]
-            name = item.data(role=Image.url).rsplit('/', 1)[-1]
-            data = item.data(role=Image.response).content
+            name = item.data(role=ImageElement.url).rsplit('/', 1)[-1]
+            data = item.data(role=ImageElement.response).content
         saveDirectory = './images'
         if not os.path.exists(saveDirectory):
             os.makedirs(saveDirectory)
@@ -87,19 +96,18 @@ class MainWindow(QFrame):
 
         return scaled
 
-    def _makeItem(self, response, defer=False):
+    def _makeItem(self, response):
         # Creates an image item from the given response
         item = QStandardItem()
-        item.setData(response.url, role=Image.url)
-        item.setData(response, role=Image.response)
-        if not defer:
-            item.setData(self._makeImage(response), role=Image.image)
+        item.setData(response.url, role=ImageElement.url)
+        item.setData(response, role=ImageElement.response)
+        item.setData(self._makeImage(response), role=ImageElement.image)
         
         return item
 
-    def _newImage(self, response, defer=False):
+    def _newImage(self, response):
         # Creates a new image item, adds it to the model, then updates the view
-        item = self._makeItem(response, defer=defer)
+        item = self._makeItem(response)
         self._linkHistoryModel.appendRow(item)
         self._linkHistoryView.selectionModel().select(self._linkHistoryModel.indexFromItem(item), QItemSelectionModel.ClearAndSelect)
 
@@ -107,7 +115,7 @@ class MainWindow(QFrame):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            self._newImage(randomImgurResponse(), defer=True)
+            AsyncRequestManager.downloadRequest(random=True)
         elif event.button() == Qt.RightButton:
             self._saveImage()
 

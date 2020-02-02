@@ -1,5 +1,7 @@
 images/*
-MIYU/Credentials.py
+miyu/Credentials.py
+mockup/*
+!mockup/mockup.xd
 *.db
 
 # Byte-compiled / optimized / DLL files
